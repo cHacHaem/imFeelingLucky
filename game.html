@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I'm Feeling Lucky</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: arial, sans-serif;
+    background: #fff;
+    color: #202124;
+    min-height: 100vh;
+  }
+
+  /* ── SHARED LOGO COLORS ── */
+  .lI  { color: #4285f4; }
+  .lm  { color: #ea4335; }
+  .lF  { color: #fbbc05; }
+  .le1 { color: #4285f4; }
+  .le2 { color: #34a853; }
+  .ll  { color: #ea4335; }
+  .li  { color: #4285f4; }
+  .ln  { color: #34a853; }
+  .lg  { color: #fbbc05; }
+  .lL  { color: #ea4335; }
+  .lu  { color: #4285f4; }
+  .lc  { color: #34a853; }
+  .lk  { color: #fbbc05; }
+  .ly  { color: #ea4335; }
+  .lsp { color: #bdc1c6; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px 0;
+  }
+  .topbar-logo {
+    font-size: 20px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .lives-display {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .x-mark {
+    font-size: 28px;
+    font-weight: 900;
+    color: #ea4335;
+    line-height: 1;
+    font-family: arial, sans-serif;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  .x-mark.gone {
+    opacity: 0.15;
+    transform: scale(0.7);
+  }
+
+  /* ── MAIN CONTENT ── centered like Google homepage */
+  .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 36px 20px 60px;
+  }
+
+  /* Big centered logo */
+  .big-logo {
+    font-size: 56px;
+    font-weight: 400;
+    letter-spacing: -1.5px;
+    margin-bottom: 28px;
+    line-height: 1;
+    user-select: none;
+    text-align: center;
+  }
+
+  /* ── SEARCH BAR ── */
+  .search-wrap {
+    width: 100%;
+    max-width: 584px;
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    border: 1px solid #dfe1e5;
+    border-radius: 24px;
+    padding: 0 10px 0 20px;
+    height: 48px;
+    background: #fff;
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  .search-bar:hover {
+    box-shadow: 0 1px 6px rgba(32,33,36,0.18);
+    border-color: rgba(0,0,0,0);
+  }
+  .search-bar:focus-within {
+    box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+    border-color: rgba(0,0,0,0);
+  }
+  .search-bar.shake { animation: shake 0.38s ease; }
+
+  /* Grey non-editable prompt */
+  .search-prefix {
+    font-size: 16px;
+    color: #5f6368;
+    white-space: nowrap;
+    flex-shrink: 0;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Editable completion */
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    font-family: arial, sans-serif;
+    color: #202124;
+    background: transparent;
+    padding: 0 6px;
+    min-width: 50px;
+  }
+  .search-input::placeholder { color: #c0c4c8; }
+  .search-input:disabled { color: #9aa0a6; }
+
+  /* Search icon button inside bar */
+  .search-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    color: #4285f4;
+    display: flex;
+    align-items: center;
+    transition: background 0.1s;
+  }
+  .search-btn:hover { background: #f1f3f4; }
+  .search-btn:disabled { opacity: 0.3; cursor: default; }
+  .search-btn svg { width: 20px; height: 20px; }
+
+  /* Give up link */
+  .give-up-row {
+    width: 100%;
+    max-width: 584px;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+  }
+  .give-up {
+    font-size: 12px;
+    color: #9aa0a6;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: arial, sans-serif;
+    text-decoration: underline;
+    padding: 2px 0;
+  }
+  .give-up:hover { color: #5f6368; }
+
+  /* ── AUTOCOMPLETE DROPDOWN ── */
+  .dropdown {
+    width: 100%;
+    max-width: 584px;
+    border: 1px solid #dfe1e5;
+    border-top: none;
+    border-radius: 0 0 24px 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(32,33,36,0.1);
+    margin-top: 2px;
+  }
+
+  .sug-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 18px;
+    border-top: 1px solid #f1f3f4;
+    min-height: 46px;
+    transition: background 0.08s;
+    cursor: default;
+  }
+  .sug-row:first-child { border-top: none; }
+  .sug-row:hover { background: #f8f9fa; }
+  .sug-row.found {
+    background: #e6f4ea;
+    animation: flashgreen 0.3s ease;
+  }
+  .sug-row.revealed { background: #fce8e6; }
+
+  @keyframes flashgreen {
+    0%   { background: #a8d5b5; }
+    100% { background: #e6f4ea; }
+  }
+
+  .sug-search-icon { flex-shrink: 0; color: #9aa0a6; display: flex; }
+  .sug-search-icon svg { width: 16px; height: 16px; }
+
+  .sug-text {
+    font-size: 15px;
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .sug-text .pfx { color: #5f6368; }
+  .sug-text .ans { color: #202124; }
+
+  .sug-blank {
+    display: inline-block;
+    height: 12px;
+    border-radius: 3px;
+    vertical-align: middle;
+    background: linear-gradient(90deg, #e8eaed 25%, #f5f5f5 50%, #e8eaed 75%);
+    background-size: 300% 100%;
+    animation: shimmer 1.8s infinite ease-in-out;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  /* ── END CARD ── */
+  .end-card {
+    display: none;
+    width: 100%;
+    max-width: 584px;
+    margin-top: 28px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 30px 36px;
+    text-align: center;
+  }
+  .end-card.show { display: block; }
+  .end-card h2 { font-size: 20px; font-weight: 400; margin-bottom: 8px; }
+  .end-card p  { font-size: 14px; color: #5f6368; margin-bottom: 22px; }
+  .end-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .ebtn {
+    font-family: arial, sans-serif;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: 4px;
+    border: 1px solid #dadce0;
+    background: #f8f9fa;
+    color: #3c4043;
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  .ebtn:hover { border-color: #c6c6c6; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .ebtn.primary { background: #1a73e8; border-color: #1a73e8; color: #fff; }
+  .ebtn.primary:hover { background: #1668d6; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #202124;
+    color: #fff;
+    font-size: 13px;
+    padding: 8px 20px;
+    border-radius: 20px;
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-8px); }
+    40%     { transform: translateX(8px); }
+    60%     { transform: translateX(-5px); }
+    80%     { transform: translateX(5px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo" onclick="newGame()">
+    <span class="lI">I</span><span class="lsp">'</span><span class="lm">m</span><span class="lsp"> </span><span class="lF">F</span><span class="le1">e</span><span class="le2">e</span><span class="ll">l</span><span class="li">i</span><span class="ln">n</span><span class="lg">g</span><span class="lsp"> </span><span class="lL">L</span><span class="lu">u</span><span class="lc">c</span><span class="lk">k</span><span class="ly">y</span>
+  </div>
+  <div class="lives-display" id="lives-display"></div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- Big logo -->
+  <div class="big-logo">
+    <span class="lI">I</span><span class="lsp">'</span><span class="lm">m</span><span class="lsp"> </span><span class="lF">F</span><span class="le1">e</span><span class="le2">e</span><span class="ll">l</span><span class="li">i</span><span class="ln">n</span><span class="lg">g</span><span class="lsp"> </span><span class="lL">L</span><span class="lu">u</span><span class="lc">c</span><span class="lk">k</span><span class="ly">y</span>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-wrap">
+    <div class="search-bar" id="search-bar">
+      <span class="search-prefix" id="search-prefix"></span>
+      <input
+        class="search-input"
+        id="search-input"
+        placeholder="finish the search…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="search-btn" id="search-btn" onclick="submitGuess()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Give up -->
+  <div class="give-up-row">
+    <button class="give-up" id="give-up" onclick="giveUp()">give up</button>
+  </div>
+
+  <!-- Autocomplete rows -->
+  <div class="dropdown" id="dropdown"></div>
+
+  <!-- End card -->
+  <div class="end-card" id="end-card">
+    <h2 id="end-title"></h2>
+    <p id="end-sub"></p>
+    <div class="end-btns">
+      <button class="ebtn primary" onclick="newGame()">Next question</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── QUESTIONS ──────────────────────────────────────────────────────────────
+let QUESTIONS = [];
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let currentQ = null;
+let revealed = [];
+let lives    = 3;
+let isDone   = false;
+let pool     = [];
+
+function shuffle(a) {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [b[i], b[j]] = [b[j], b[i]];
+  }
+  return b;
+}
+
+function setLoadingState(msg) {
+  document.getElementById('search-prefix').textContent = msg;
+  document.getElementById('dropdown').innerHTML = '';
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-input').disabled = true;
+  document.getElementById('search-btn').disabled = true;
+  document.getElementById('give-up').style.visibility = 'hidden';
+  document.getElementById('end-card').classList.remove('show');
+  document.getElementById('lives-display').innerHTML = '';
+}
+
+function isValidQuestionSet(data) {
+  return Array.isArray(data) && data.length > 0 && data.every(item =>
+    item &&
+    typeof item.prompt === 'string' &&
+    Array.isArray(item.answers) &&
+    item.answers.length > 0 &&
+    item.answers.every(answer => typeof answer === 'string')
+  );
+}
+
+async function loadQuestions() {
+  setLoadingState('loading questions...');
+  try {
+    const res = await fetch('./questions.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!isValidQuestionSet(data)) throw new Error('Invalid questions.json format');
+    QUESTIONS = data;
+    pool = [];
+    newGame();
+  } catch (err) {
+    console.error('Failed to load questions.json', err);
+    setLoadingState('could not load questions.json');
+    showToast('Failed to load questions.json', '#ea4335');
+  }
+}
+
+// ── GAME ───────────────────────────────────────────────────────────────────
+function newGame() {
+  if (!QUESTIONS.length) return;
+  if (!pool.length) pool = shuffle(QUESTIONS);
+  currentQ = pool.pop();
+  revealed = new Array(currentQ.answers.length).fill(null);
+  lives    = 3;
+  isDone   = false;
+
+  const inp = document.getElementById('search-input');
+  inp.value = '';
+  inp.disabled = false;
+  document.getElementById('search-btn').disabled = false;
+  document.getElementById('give-up').style.visibility = 'visible';
+  document.getElementById('end-card').classList.remove('show');
+  document.getElementById('search-prefix').textContent = currentQ.prompt + ' ';
+
+  renderLives();
+  renderDropdown();
+  inp.focus();
+}
+
+function renderLives() {
+  let h = '';
+  for (let i = 0; i < 3; i++) {
+    h += `<span class="x-mark${i >= lives ? ' gone' : ''}">✕</span>`;
+  }
+  document.getElementById('lives-display').innerHTML = h;
+}
+
+const BLANK_WIDTHS = [108, 88, 132, 76, 122, 94, 144, 72, 104, 86];
+
+function renderDropdown() {
+  const q = currentQ;
+  let html = '';
+  for (let i = 0; i < q.answers.length; i++) {
+    const st = revealed[i];
+    let cls = 'sug-row';
+    if (st === 'found') cls += ' found';
+    if (st === 'shown') cls += ' revealed';
+
+    let inner;
+    if (st) {
+      inner = `<span class="pfx">${q.prompt} </span><span class="ans">${q.answers[i]}</span>`;
+    } else {
+      inner = `<span class="pfx">${q.prompt} </span><span class="sug-blank" style="width:${BLANK_WIDTHS[i % BLANK_WIDTHS.length]}px"></span>`;
+    }
+
+    html += `<div class="${cls}">
+      <span class="sug-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <span class="sug-text">${inner}</span>
+    </div>`;
+  }
+  document.getElementById('dropdown').innerHTML = html;
+}
+
+// ── GUESS ──────────────────────────────────────────────────────────────────
+function normalize(s) {
+  return s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+}
+
+function getWords(s) {
+  return normalize(s).split(/\s+/).filter(Boolean);
+}
+
+function hasEnoughMatchingWords(guess, answer) {
+  const guessWords = getWords(guess);
+  if (!guessWords.length || guessWords.length > 7) return false;
+
+  const answerWords = getWords(answer);
+  if (!answerWords.length) return false;
+
+  const remainingGuessWords = [...guessWords];
+  let matches = 0;
+
+  // Count word matches once so repeated words don't inflate the score.
+  for (const answerWord of answerWords) {
+    const idx = remainingGuessWords.indexOf(answerWord);
+    if (idx >= 0) {
+      matches++;
+      remainingGuessWords.splice(idx, 1);
+    }
+  }
+
+  return matches / answerWords.length >= 0.51;
+}
+
+function submitGuess() {
+  if (isDone) return;
+  const inp = document.getElementById('search-input');
+  const raw = inp.value.trim();
+  if (!raw) return;
+  inp.value = '';
+
+  let matched = -1;
+  for (let i = 0; i < currentQ.answers.length; i++) {
+    if (revealed[i]) continue;
+    if (hasEnoughMatchingWords(raw, currentQ.answers[i])) {
+      matched = i;
+      break;
+    }
+  }
+
+  if (matched >= 0) {
+    revealed[matched] = 'found';
+    renderDropdown();
+    showToast('✓ on the list!', '#34a853');
+    if (revealed.every(r => r === 'found')) endGame(true);
+  } else {
+    lives--;
+    renderLives();
+    const bar = document.getElementById('search-bar');
+    bar.classList.add('shake');
+    setTimeout(() => bar.classList.remove('shake'), 400);
+    showToast('not on the list', '#ea4335');
+    if (lives === 0) setTimeout(() => endGame(false), 500);
+  }
+}
+
+function giveUp() {
+  if (isDone) return;
+  endGame(false);
+}
+
+function endGame(win) {
+  isDone = true;
+  for (let i = 0; i < revealed.length; i++) {
+    if (!revealed[i]) revealed[i] = 'shown';
+  }
+  renderDropdown();
+
+  document.getElementById('search-input').disabled = true;
+  document.getElementById('search-btn').disabled = true;
+  document.getElementById('give-up').style.visibility = 'hidden';
+
+  const found = revealed.filter(r => r === 'found').length;
+  document.getElementById('end-title').textContent = win ? 'You got them all! 🎉' : 'Round over 😬';
+  document.getElementById('end-sub').textContent = win
+    ? `You found all ${currentQ.answers.length} suggestions.`
+    : `You got ${found} of ${currentQ.answers.length}.`;
+
+  setTimeout(() => document.getElementById('end-card').classList.add('show'), 350);
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+let _tt;
+function showToast(msg, bg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = bg || '#202124';
+  t.classList.add('show');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitGuess();
+});
+
+loadQuestions();
+</script>
+</body>
+</html>
