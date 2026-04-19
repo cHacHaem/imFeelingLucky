@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>I'm Feeling Lucky — Question Scraper</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: arial, sans-serif; background: #f8f9fa; color: #202124; min-height: 100vh; }
@@ -341,6 +342,77 @@ function logLine(msg, type) {
   d.scrollTop = d.scrollHeight;
 }
 
+function normalizePromptText(value) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function extractCompletion(prompt, suggestion) {
+  const normPrompt = normalizePromptText(prompt);
+  const normSuggestion = normalizePromptText(suggestion);
+  if (!normSuggestion.startsWith(normPrompt)) return null;
+
+  const completion = normSuggestion.slice(normPrompt.length).trim();
+  return completion || null;
+}
+
+const QUERY_SUFFIXES = [
+  '',
+  ' ',
+  ...'abcdefghijklmnopqrstuvwxyz'.split('').map(ch => ' ' + ch),
+  ...'0123456789'.split('').map(ch => ' ' + ch)
+];
+
+async function fetchSuggestionBatch(proxy, query) {
+  const r = await fetch(proxy + encodeURIComponent(query));
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data = await r.json();
+  return Array.isArray(data[1]) ? data[1] : [];
+}
+
+async function fetchPromptSuggestions(proxy, prompt, maxAttempts = 2) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const seen = new Set();
+      const suggestions = [];
+      let batchesUsed = 0;
+
+      for (const suffix of QUERY_SUFFIXES) {
+        const rawSuggestions = await fetchSuggestionBatch(proxy, prompt + suffix);
+        batchesUsed++;
+
+        rawSuggestions
+          .map(s => extractCompletion(prompt, s))
+          .filter(Boolean)
+          .forEach(s => {
+            if (seen.has(s) || suggestions.length >= 10) return;
+            seen.add(s);
+            suggestions.push(s);
+          });
+
+        if (suggestions.length >= 10) break;
+        await new Promise(r => setTimeout(r, 120));
+      }
+
+      if (suggestions.length) {
+        return { suggestions, attempt, batchesUsed };
+      }
+
+      lastError = new Error('no matching completions');
+    } catch (e) {
+      lastError = e;
+    }
+
+    if (attempt < maxAttempts) {
+      logLine(`↻ "${prompt}" — retrying (${attempt + 1}/${maxAttempts})`, 'info');
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  throw lastError || new Error('fetch failed');
+}
+
 async function startFetch() {
   const prompts = getPrompts();
   if (!prompts.length) { alert('Enter prompts first.'); return; }
@@ -355,16 +427,14 @@ async function startFetch() {
   let done = 0;
   for (const p of prompts) {
     try {
-      const r = await fetch(proxy + encodeURIComponent(p));
-      const data = await r.json();
-      const suggs = (Array.isArray(data[1]) ? data[1] : [])
-        .map(s => s.replace(p, '').trim()).filter(Boolean).slice(0, 10);
-      if (suggs.length) {
-        results[p] = suggs;
-        logLine(`✓ "${p}" — ${suggs.length}`, 'ok');
-      } else {
-        logLine(`⚠ "${p}" — no results`, 'err');
-      }
+      const { suggestions, attempt, batchesUsed } = await fetchPromptSuggestions(proxy, p);
+      results[p] = suggestions;
+      const details = [
+        `${suggestions.length}`,
+        batchesUsed > 1 ? `${batchesUsed} searches` : null,
+        attempt > 1 ? `retry ${attempt}` : null
+      ].filter(Boolean).join(', ');
+      logLine(`✓ "${p}" — ${details}`, 'ok');
     } catch(e) {
       logLine(`✗ "${p}" — ${e.message}`, 'err');
     }
