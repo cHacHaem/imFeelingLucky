@@ -506,19 +506,23 @@ function submitGuess() {
   if (!raw) return;
   inp.value = '';
 
-  let matched = -1;
+  const matched = [];
   for (let i = 0; i < currentQ.answers.length; i++) {
     if (revealed[i]) continue;
     if (hasEnoughMatchingWords(raw, currentQ.answers[i])) {
-      matched = i;
-      break;
+      matched.push(i);
     }
   }
 
-  if (matched >= 0) {
-    revealed[matched] = 'found';
+  if (matched.length) {
+    matched.forEach(i => {
+      revealed[i] = 'found';
+    });
     renderDropdown();
-    showToast('✓ on the list!', '#34a853');
+    showToast(
+      matched.length === 1 ? '✓ on the list!' : `✓ ${matched.length} answers found!`,
+      '#34a853'
+    );
     if (revealed.every(r => r === 'found')) endGame(true);
   } else {
     lives--;
